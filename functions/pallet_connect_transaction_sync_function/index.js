@@ -56,3 +56,4 @@ module.exports = async (jobRequest, context) => {
 	context.closeWithSuccess(); // Close the job with a successful execution status
 	// context.closeWithFailure(); // Close the job with a failed execution status
 };
+		

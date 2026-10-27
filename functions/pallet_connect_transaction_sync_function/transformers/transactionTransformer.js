@@ -1,0 +1,1 @@
+// 	Converts API transaction fields into Creator fields

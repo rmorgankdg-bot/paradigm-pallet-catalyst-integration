@@ -1,0 +1,24 @@
+{
+  "name": "paradigm-pallet-catalyst-integration",
+  "version": "1.0.0",
+  "description": "Zoho Catalyst integration for automating historical and daily Pallet Connect transaction imports into Zoho Creator and Analytics, including contact synchronization, data normalization, and multi-facility processing.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rmorgankdg-bot/paradigm-pallet-catalyst-integration.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/rmorgankdg-bot/paradigm-pallet-catalyst-integration/issues"
+  },
+  "homepage": "https://github.com/rmorgankdg-bot/paradigm-pallet-catalyst-integration#readme",
+  "dependencies": {
+    "dotenv": "^18.0.9"
+  }
+}
