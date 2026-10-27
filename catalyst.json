@@ -1,0 +1,9 @@
+{
+  "functions": {
+    "targets": [
+      "pallet_connect_transaction_sync_function"
+    ],
+    "ignore": [],
+    "source": "functions"
+  }
+}

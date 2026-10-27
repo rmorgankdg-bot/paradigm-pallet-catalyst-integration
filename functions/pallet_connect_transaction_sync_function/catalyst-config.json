@@ -1,0 +1,11 @@
+{
+	"deployment": {
+		"name": "pallet_connect_transaction_sync_function",
+		"stack": "node22",
+		"type": "job",
+		"env_variables": {}
+	},
+	"execution": {
+		"main": "index.js"
+	}
+}
