@@ -1,46 +1,124 @@
 
-// Tests Pallet Connect API Getters
+/**
+ * Paradigm Pallet - Analytics API Test
+ *
+ * Retrieves Pallet Connect transactions and contacts,
+ * then generates Analytics-ready CSV tables.
+ */
 
 const PalletConnect_Getters = require("./clients/palletConnectGetters");
 const PalletConnect_Auth = require("./clients/palletConnectAuth");
+const { exportAnalyticsData } = require("./test_csv");
 
 //=================================================
-// Test Pallet Connect API Getters
+// Configuration
 //=================================================
+
+const startDate = "2026-10-27";
+const endDate = "2026-10-28";
+
+// Leave null to retrieve across facilities.
+const facilityID = null;
+
+//=================================================
+// Main
+//=================================================
+
 async function main()
 {
     try
     {
-        // ------------------------------------------------
+        //------------------------------------------------------
         // Authenticate
+
+        console.log("Authenticating...");
+
         const token = await PalletConnect_Auth.authenticate();
+
+        if (!token)
+        {
+            throw new Error("Authentication returned no token.");
+        }
+
         console.log("Authentication Successful!");
 
-        // ------------------------------------------------
+        //------------------------------------------------------
         // Retrieve Contacts
+
+        console.log("Retrieving Contacts...");
+
         const contacts = await PalletConnect_Getters.getContacts(token);
+
+        if (!Array.isArray(contacts))
+        {
+            throw new Error("Contacts response is not an array.");
+        }
+
         console.log("Contacts Retrieved:", contacts.length);
-        console.log("First Contact:", JSON.stringify(contacts[0] ?? null, null, 2));
 
-        // ------------------------------------------------
-        // Retrieve Facilities
-        const facilities = await PalletConnect_Getters.getFacilities(token);
-        console.log("Facilities Retrieved:", facilities.length);
-        console.log("First Facility:", JSON.stringify(facilities[0] ?? null, null, 2));
-
-        // ------------------------------------------------
+        //------------------------------------------------------
         // Retrieve Transactions
-        const contactID = 549;
-        const startDate = "2026-01-01";
-        const endDate = "2026-10-27";
 
-        const transactions = await PalletConnect_Getters.getTransactions(token, contactID, startDate, endDate);
+        console.log("--------------------------------------");
+        console.log("Retrieving Transactions");
+        console.log("Start Date:", startDate);
+        console.log("End Date:", endDate);
+        console.log("Facility:", facilityID ?? "All");
+        console.log("--------------------------------------");
+
+        console.time("Transaction Retrieval");
+
+        const transactions =
+            await PalletConnect_Getters.getAllTransactionsForAllContacts(
+                token,
+                startDate,
+                endDate,
+                facilityID
+            );
+
+        console.timeEnd("Transaction Retrieval");
+
+        if (!Array.isArray(transactions))
+        {
+            throw new Error("Transactions response is not an array.");
+        }
+
         console.log("Transactions Retrieved:", transactions.length);
-        console.log("First Transaction:", JSON.stringify(transactions[0] ?? null, null, 2));
+
+        //------------------------------------------------------
+        // Export Analytics Tables
+
+        console.log("--------------------------------------");
+        console.log("Exporting Analytics Tables...");
+        console.log("--------------------------------------");
+
+        const result = exportAnalyticsData({
+            transactions,
+            contacts,
+            startDate,
+            endDate
+        });
+
+        //------------------------------------------------------
+        // Results
+
+        console.log("--------------------------------------");
+        console.log("Analytics Export Complete");
+        console.log("--------------------------------------");
+
+        console.table(result.counts);
+
+        console.log("Output Directory:", result.outputDirectory);
+
+        console.log("Files Created:");
+        for (const file of result.files)
+        {
+            console.log(" -", file);
+        }
     }
     catch (error)
     {
-        console.error("ERROR:", error.message);
+        console.error("ERROR:", error);
         process.exitCode = 1;
     }
 }

@@ -110,11 +110,221 @@ async function getTransactionByReference(token, referenceNumber)
 }
 
 //=================================================
+// Retrieve All Transactions from Pallet Connect API
+//=================================================
+async function getAllTransactions(token, contactID, startDate, endDate, facilityID = null)
+{
+    const allTransactions = [];
+    const limit = 20;
+    let offset = 0;
+
+    while (true)
+    {
+        const transactions = await getTransactions(
+            token,
+            contactID,
+            startDate,
+            endDate,
+            facilityID,
+            offset,
+            limit
+        );
+
+        allTransactions.push(...transactions);
+
+        console.log(`Retrieved ${transactions.length} transactions at offset ${offset}`);
+
+        if (transactions.length < limit)
+        {
+            break;
+        }
+
+        offset += limit;
+    }
+
+    return allTransactions;
+}
+
+
+ //=================================================
+ // Retrieve Transactions Without Contact ID (Test)
+ //=================================================
+ async function getTransactionsWithoutContact(token, startDate, endDate, facilityID = null, offset = 0, limit = 20)
+ {
+     // ------------------------------------------------
+     // Transaction Request Parameters
+     const parameters = new URLSearchParams();
+     parameters.append("offset", offset);
+     parameters.append("limit", limit);
+
+     if (startDate)
+     {
+         parameters.append("start_date", startDate);
+     }
+
+     if (endDate)
+     {
+         parameters.append("end_date", endDate);
+     }
+
+     if (facilityID !== null)
+     {
+         parameters.append("facility_id", facilityID);
+     }
+
+     // ------------------------------------------------
+     // Retrieve Transactions
+     const transactionsURL = `${baseURL}/secure/transactions/search?${parameters.toString()}`;
+     const transactionsResponse = await fetch(transactionsURL, {method: "GET", headers: {Authorization: `Bearer ${token}`}});
+     const transactionResultsJSON = await transactionsResponse.json();
+     //-------------------------------------------------------------------------------------
+     console.log("Transaction Request URL:", transactionsURL);
+     console.log("Transaction Response:", JSON.stringify(transactionResultsJSON, null, 2));
+
+     // Error Case
+     if (!transactionsResponse.ok || transactionResultsJSON.success !== 1)
+     {
+         throw new Error(`Transaction Request Without Contact Failed (HTTP ${transactionsResponse.status}): ${transactionResultsJSON.message || "Unknown error"}`);
+     }
+
+     // Success Case
+     if (!Array.isArray(transactionResultsJSON.data))
+     {
+         throw new Error("Unexpected transaction response format.");
+     }
+
+     return transactionResultsJSON.data;
+ }
+
+ //=================================================
+ // Retrieve All Transactions Without Contact ID
+ //=================================================
+ async function getAllTransactionsWithoutContact(token, startDate, endDate, facilityID = null)
+ {
+     const allTransactions = [];
+     const limit = 20;
+     let offset = 0;
+
+     while (true)
+     {
+         const transactions = await getTransactionsWithoutContact(
+             token,
+             startDate,
+             endDate,
+             facilityID,
+             offset,
+             limit
+         );
+
+         allTransactions.push(...transactions);
+
+         console.log(`Retrieved ${transactions.length} transactions at offset ${offset}`);
+
+         if (transactions.length < limit)
+         {
+             break;
+         }
+
+         offset += limit;
+     }
+
+     return allTransactions;
+ }
+
+ //=================================================
+ // Retrieve All Transactions for All Contacts
+ //=================================================
+//=================================================
+// Retrieve All Transactions for All Contacts
+//=================================================
+async function getAllTransactionsForAllContacts(token, startDate, endDate, facilityID = null)
+{
+    // ------------------------------------------------
+    // Retrieve Contacts
+    const contacts = await getContacts(token);
+    const allTransactions = [];
+
+    console.log(`Contacts Retrieved: ${contacts.length}`);
+
+    // ------------------------------------------------
+    // Retrieve Transactions for Each Contact
+    for (const contact of contacts)
+    {
+        const contactID = contact.id;
+
+        if (contactID === null || contactID === undefined)
+        {
+            console.log("Skipping contact without ID:", contact);
+            continue;
+        }
+
+        console.log(`Retrieving transactions for Contact ID: ${contactID}`);
+
+        let transactions;
+        let attempts = 0;
+        const maxAttempts = 5;
+
+        while (true)
+        {
+            try
+            {
+                transactions = await getAllTransactions(
+                    token,
+                    contactID,
+                    startDate,
+                    endDate,
+                    facilityID
+                );
+
+                break;
+            }
+            catch (error)
+            {
+                attempts++;
+
+                if (!error.message.includes("429") || attempts >= maxAttempts)
+                {
+                    throw error;
+                }
+
+                const waitTime = Math.min(35000 * (2 ** (attempts - 1)), 120000);
+
+                console.log(`Rate limit reached. Waiting ${waitTime / 1000} seconds before retry ${attempts}/${maxAttempts}...`);
+
+                await delay(waitTime);
+            }
+        }
+
+        allTransactions.push(...transactions);
+
+        console.log(`Contact ${contactID}: ${transactions.length} transactions retrieved`);
+
+        // ------------------------------------------------
+        // Delay Between Contacts
+        await delay(100);
+    }
+
+    return allTransactions;
+}
+ //=================================================
+// Delay API Requests
+//=================================================
+async function delay(milliseconds)
+{
+    return new Promise(resolve => setTimeout(resolve, milliseconds));
+}
+ 
+//=================================================
 // Export Functions
 //=================================================
 module.exports = {
     getContacts,
     getFacilities,
     getTransactions,
-    getTransactionByReference
+    getTransactionByReference,
+    getAllTransactions,
+    getTransactionsWithoutContact,
+    getAllTransactionsWithoutContact,
+    getAllTransactionsForAllContacts,
+    delay
 };
